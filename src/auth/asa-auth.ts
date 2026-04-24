@@ -24,7 +24,7 @@ export class ASAAuthManager {
   private config: ASAAuthConfig;
   private privateKey: string;
   private cachedToken: string | null = null;
-  private tokenExpiry: number = 0;
+  private tokenExpiryMs: number = 0;
 
   constructor(config: ASAAuthConfig) {
     this.config = config;
@@ -58,7 +58,7 @@ export class ASAAuthManager {
    * Tokens live ~1 hour; we refresh 60s early.
    */
   async getAccessToken(): Promise<string> {
-    if (this.cachedToken && Date.now() / 1000 < this.tokenExpiry) {
+    if (this.cachedToken && Date.now() < this.tokenExpiryMs) {
       return this.cachedToken;
     }
 
@@ -78,7 +78,7 @@ export class ASAAuthManager {
     );
 
     this.cachedToken = response.data.access_token;
-    this.tokenExpiry = Math.floor(Date.now() / 1000) + (response.data.expires_in || 3600) - 60;
+    this.tokenExpiryMs = Date.now() + ((response.data.expires_in || 3600) - 60) * 1000;
     return this.cachedToken!;
   }
 }

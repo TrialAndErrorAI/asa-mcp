@@ -9,8 +9,11 @@
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
     "test": "vitest",
-    "test:auth": "tsx src/test-auth.ts",
-    "test:api": "tsx src/test-api.ts"
+    "test:auth": "tsx test/test-auth.ts",
+    "test:api": "tsx test/test-api.ts"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "keywords": [
     "mcp",

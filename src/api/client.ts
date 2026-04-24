@@ -11,8 +11,7 @@ import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 import { ASAAuthManager } from '../auth/asa-auth.js';
 
 export interface ASAClientConfig {
-  defaultOrgId: string;     // "6290230" for main Renovate org
-  nonUsOrgId?: string;      // "8569880" for Non-US org — caller opts in via orgId
+  defaultOrgId: string;
 }
 
 export class ASAClient {
@@ -32,7 +31,6 @@ export class ASAClient {
     this.axiosInstance.interceptors.request.use(async (cfg) => {
       const token = await this.auth.getAccessToken();
       cfg.headers.Authorization = `Bearer ${token}`;
-      // Caller may override org via options.headers
       if (!cfg.headers['X-AP-Context']) {
         cfg.headers['X-AP-Context'] = `orgId=${this.config.defaultOrgId}`;
       }
@@ -91,6 +89,10 @@ export class ASAClient {
       const msg = Array.isArray(errors) && errors.length
         ? errors.map((e: any) => `${e.messageCode}: ${e.message}${e.field ? ` (${e.field})` : ''}`).join('; ')
         : error.message;
+      if (status === 429) {
+        const retryAfter = error.response.headers['retry-after'];
+        throw new Error(`ASA API 429 rate limited${retryAfter ? ` (retry after ${retryAfter}s)` : ''}: ${msg}`);
+      }
       throw new Error(`ASA API ${status}: ${msg}`);
     }
     throw new Error(`ASA API network error: ${error.message}`);

@@ -16,21 +16,21 @@ dotenv.config();
 
 async function main() {
   const clientId = process.env.ASA_CLIENT_ID;
-  const teamId = process.env.ASA_TEAM_ID || clientId;
   const keyId = process.env.ASA_KEY_ID;
   const p8Path = process.env.ASA_P8_PATH;
   const orgId = process.env.ASA_ORG_ID;
-  const nonUsOrgId = process.env.ASA_NON_US_ORG_ID;
 
   if (!clientId || !keyId || !p8Path || !orgId) {
     process.stderr.write('Missing required env vars: ASA_CLIENT_ID, ASA_KEY_ID, ASA_P8_PATH, ASA_ORG_ID\n');
     process.exit(1);
   }
 
+  const teamId = process.env.ASA_TEAM_ID ?? clientId;
+
   try {
     const server = new ASAMCPServer({
-      auth: { clientId, teamId: teamId!, keyId, p8Path },
-      client: { defaultOrgId: orgId, nonUsOrgId },
+      auth: { clientId, teamId, keyId, p8Path },
+      client: { defaultOrgId: orgId },
     });
     await server.start();
     process.on('SIGINT', () => process.exit(0));

@@ -4,7 +4,7 @@
  */
 
 import dotenv from 'dotenv';
-import { ASAAuthManager } from './auth/asa-auth.js';
+import { ASAAuthManager } from '../src/auth/asa-auth.js';
 
 dotenv.config();
 

@@ -4,21 +4,21 @@
  */
 
 import dotenv from 'dotenv';
-import { loadSpec } from './spec/loader.js';
-import { executeInSandbox } from './executor/sandbox.js';
-import { ASAAuthManager } from './auth/asa-auth.js';
-import { ASAClient } from './api/client.js';
+import { loadSpec } from '../src/spec/loader.js';
+import { executeInSandbox } from '../src/executor/sandbox.js';
+import { ASAAuthManager } from '../src/auth/asa-auth.js';
+import { ASAClient } from '../src/api/client.js';
 
 dotenv.config();
 
 async function main() {
-  const { ASA_CLIENT_ID, ASA_TEAM_ID, ASA_KEY_ID, ASA_P8_PATH, ASA_ORG_ID, ASA_NON_US_ORG_ID } = process.env;
+  const { ASA_CLIENT_ID, ASA_TEAM_ID, ASA_KEY_ID, ASA_P8_PATH, ASA_ORG_ID } = process.env;
   if (!ASA_CLIENT_ID || !ASA_KEY_ID || !ASA_P8_PATH || !ASA_ORG_ID) {
     throw new Error('Missing env');
   }
 
   const auth = new ASAAuthManager({ clientId: ASA_CLIENT_ID, teamId: ASA_TEAM_ID || ASA_CLIENT_ID, keyId: ASA_KEY_ID, p8Path: ASA_P8_PATH });
-  const client = new ASAClient(auth, { defaultOrgId: ASA_ORG_ID, nonUsOrgId: ASA_NON_US_ORG_ID });
+  const client = new ASAClient(auth, { defaultOrgId: ASA_ORG_ID });
   const spec = loadSpec();
 
   console.log(`=== Loaded spec ===`);

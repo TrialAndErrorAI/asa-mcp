@@ -14,6 +14,7 @@ export interface ExecuteResult {
 }
 
 const MAX_OUTPUT_CHARS = 40_000;
+const MAX_LOG_ENTRIES = 10_000;
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 /**
@@ -34,9 +35,9 @@ export async function executeInSandbox(
   const contextGlobals: Record<string, any> = {
     ...globals,
     console: {
-      log: (...args: any[]) => logs.push(args.map(formatValue).join(' ')),
-      error: (...args: any[]) => logs.push('[ERROR] ' + args.map(formatValue).join(' ')),
-      warn: (...args: any[]) => logs.push('[WARN] ' + args.map(formatValue).join(' ')),
+      log: (...args: any[]) => { if (logs.length < MAX_LOG_ENTRIES) logs.push(args.map(formatValue).join(' ')); },
+      error: (...args: any[]) => { if (logs.length < MAX_LOG_ENTRIES) logs.push('[ERROR] ' + args.map(formatValue).join(' ')); },
+      warn: (...args: any[]) => { if (logs.length < MAX_LOG_ENTRIES) logs.push('[WARN] ' + args.map(formatValue).join(' ')); },
     },
     JSON,
     Object,
