@@ -1,0 +1,435 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Apple Search Ads Campaign Management API",
+    "version": "5.0-partial",
+    "description": "Hand-built OpenAPI spec covering the ~18 endpoints actively used by Trial and Error Inc. Apple does not publish an official OpenAPI for Apple Search Ads (unlike App Store Connect). Expand `paths` object as new endpoints are needed. Source of truth: https://developer.apple.com/documentation/apple_ads"
+  },
+  "servers": [
+    {"url": "https://api.searchads.apple.com/api/v5"}
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Access token from Apple OAuth2. Auto-injected by the MCP server. Requires X-AP-Context header: orgId={ORG_ID}"
+      }
+    },
+    "schemas": {
+      "Money": {
+        "type": "object",
+        "properties": {
+          "amount": {"type": "string", "description": "Decimal amount as string, e.g. '20' for $20.00"},
+          "currency": {"type": "string", "enum": ["USD"], "description": "ISO currency code"}
+        },
+        "required": ["amount", "currency"]
+      },
+      "Campaign": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "orgId": {"type": "integer"},
+          "name": {"type": "string"},
+          "status": {"type": "string", "enum": ["ENABLED", "PAUSED"]},
+          "servingStatus": {"type": "string", "enum": ["RUNNING", "PAUSED", "NOT_RUNNING"]},
+          "dailyBudgetAmount": {"$ref": "#/components/schemas/Money"},
+          "totalBudget": {"$ref": "#/components/schemas/Money"},
+          "countriesOrRegions": {"type": "array", "items": {"type": "string"}},
+          "deleted": {"type": "boolean"},
+          "modificationTime": {"type": "string", "format": "date-time"}
+        }
+      },
+      "AdGroup": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "campaignId": {"type": "integer", "format": "int64"},
+          "name": {"type": "string"},
+          "status": {"type": "string", "enum": ["ENABLED", "PAUSED"]},
+          "defaultBidAmount": {"$ref": "#/components/schemas/Money"},
+          "deleted": {"type": "boolean"}
+        }
+      },
+      "Keyword": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "campaignId": {"type": "integer", "format": "int64"},
+          "adGroupId": {"type": "integer", "format": "int64"},
+          "text": {"type": "string"},
+          "matchType": {"type": "string", "enum": ["EXACT", "BROAD"]},
+          "status": {"type": "string", "enum": ["ACTIVE", "PAUSED"]},
+          "bidAmount": {"$ref": "#/components/schemas/Money"},
+          "keywordDisplayStatus": {"type": "string"},
+          "deleted": {"type": "boolean"}
+        }
+      },
+      "NegativeKeyword": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "format": "int64"},
+          "campaignId": {"type": "integer", "format": "int64"},
+          "adGroupId": {"type": "integer", "format": "int64", "nullable": true},
+          "text": {"type": "string"},
+          "matchType": {"type": "string", "enum": ["EXACT", "BROAD"]},
+          "status": {"type": "string", "enum": ["ACTIVE", "PAUSED"]},
+          "deleted": {"type": "boolean"}
+        }
+      },
+      "ReportSelector": {
+        "type": "object",
+        "properties": {
+          "orderBy": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {"type": "string", "example": "localSpend"},
+                "sortOrder": {"type": "string", "enum": ["ASCENDING", "DESCENDING"]}
+              }
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "offset": {"type": "integer", "default": 0},
+              "limit": {"type": "integer", "default": 1000, "maximum": 1000}
+            }
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {"type": "string"},
+                "operator": {"type": "string", "enum": ["IN", "EQUALS", "CONTAINS_ANY", "CONTAINS_ALL", "GREATER_THAN", "LESS_THAN"]},
+                "values": {"type": "array", "items": {"type": "string"}}
+              }
+            }
+          }
+        }
+      },
+      "ReportRequest": {
+        "type": "object",
+        "required": ["startTime", "endTime", "selector"],
+        "properties": {
+          "startTime": {"type": "string", "format": "date", "example": "2026-04-10"},
+          "endTime": {"type": "string", "format": "date", "example": "2026-04-23"},
+          "granularity": {"type": "string", "enum": ["HOURLY", "DAILY", "WEEKLY", "MONTHLY"], "default": "DAILY"},
+          "selector": {"$ref": "#/components/schemas/ReportSelector"},
+          "groupBy": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["countryOrRegion", "adminArea", "locality", "deviceClass", "ageRange", "gender"]}
+          },
+          "timeZone": {"type": "string", "enum": ["UTC", "ORTZ"], "default": "UTC"},
+          "returnRowTotals": {"type": "boolean", "default": true},
+          "returnGrandTotals": {"type": "boolean", "default": true},
+          "returnRecordsWithNoMetrics": {"type": "boolean", "default": false}
+        }
+      },
+      "ReportResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "reportingDataResponse": {
+                "type": "object",
+                "properties": {
+                  "row": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "metadata": {"type": "object", "description": "Entity metadata: campaignId, campaignName, keywordId, keyword, matchType, bidAmount, etc."},
+                        "total": {"type": "object", "description": "Aggregated metrics for window: localSpend, taps, impressions, tapInstalls, totalInstalls, tapNewDownloads, totalNewDownloads, avgCPT, avgCPI, ttr, conversionRate"},
+                        "granularity": {"type": "array", "items": {"type": "object"}, "description": "Per-period (DAILY) breakdown with same metrics as total"}
+                      }
+                    }
+                  },
+                  "grandTotals": {"type": "object"}
+                }
+              }
+            }
+          },
+          "pagination": {"type": "object", "nullable": true},
+          "error": {"type": "object", "nullable": true}
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "data": {"nullable": true},
+          "error": {
+            "type": "object",
+            "properties": {
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "messageCode": {"type": "string"},
+                    "message": {"type": "string"},
+                    "field": {"type": "string", "nullable": true}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/campaigns": {
+      "get": {
+        "summary": "List campaigns in the current org",
+        "description": "Returns campaigns for the org specified by X-AP-Context header. Paginated by `limit` (max 1000) and `offset`.",
+        "operationId": "listCampaigns",
+        "tags": ["Campaign"],
+        "parameters": [
+          {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 1000, "maximum": 1000}},
+          {"name": "offset", "in": "query", "schema": {"type": "integer", "default": 0}}
+        ],
+        "responses": {
+          "200": {
+            "description": "List of campaigns",
+            "content": {"application/json": {"schema": {"type": "object", "properties": {"data": {"type": "array", "items": {"$ref": "#/components/schemas/Campaign"}}}}}}
+          }
+        }
+      }
+    },
+    "/campaigns/{campaignId}": {
+      "get": {
+        "summary": "Get a single campaign by ID",
+        "operationId": "getCampaign",
+        "tags": ["Campaign"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}
+        ],
+        "responses": {"200": {"description": "Campaign", "content": {"application/json": {"schema": {"type": "object", "properties": {"data": {"$ref": "#/components/schemas/Campaign"}}}}}}}
+      },
+      "put": {
+        "summary": "Update a campaign (status, budget, name)",
+        "description": "Used for: pausing/activating campaigns, changing daily budget, renaming. Body must include the fields being changed.",
+        "operationId": "updateCampaign",
+        "tags": ["Campaign"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {"type": "string", "enum": ["ENABLED", "PAUSED"]},
+                  "dailyBudgetAmount": {"$ref": "#/components/schemas/Money"},
+                  "name": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {"200": {"description": "Updated campaign"}}
+      }
+    },
+    "/campaigns/{campaignId}/adgroups": {
+      "get": {
+        "summary": "List ad groups in a campaign",
+        "operationId": "listAdGroups",
+        "tags": ["AdGroup"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}},
+          {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 1000}}
+        ],
+        "responses": {"200": {"description": "Ad groups list"}}
+      },
+      "post": {
+        "summary": "Create an ad group",
+        "operationId": "createAdGroup",
+        "tags": ["AdGroup"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}
+        ],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/AdGroup"}}}},
+        "responses": {"201": {"description": "Created ad group"}}
+      }
+    },
+    "/campaigns/{campaignId}/adgroups/{adGroupId}/targetingkeywords": {
+      "get": {
+        "summary": "List targeting keywords in an ad group",
+        "description": "Use this to verify keyword bid state after a bulk update. Apple may obscure search-term-level data via 'Unpopulated' for Max_Conv campaigns.",
+        "operationId": "listKeywords",
+        "tags": ["Keyword"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}},
+          {"name": "adGroupId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}},
+          {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 1000}}
+        ],
+        "responses": {"200": {"description": "Keyword list", "content": {"application/json": {"schema": {"type": "object", "properties": {"data": {"type": "array", "items": {"$ref": "#/components/schemas/Keyword"}}}}}}}}
+      },
+      "post": {
+        "summary": "Add keywords to an ad group (BULK)",
+        "description": "⚠️ KNOWN APPLE BEHAVIOR: The `bidAmount` field in the request body is SILENTLY IGNORED. Apple creates keywords with bidAmount=$1 regardless of requested value. ALWAYS follow this call with PUT /targetingkeywords/bulk to set the actual bid. Duplicate `text+matchType` returns DUPLICATE_KEYWORD error in `.error.errors[]` — check the error field even on 200 status.",
+        "operationId": "addKeywords",
+        "tags": ["Keyword"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}},
+          {"name": "adGroupId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["text", "matchType"],
+                  "properties": {
+                    "text": {"type": "string"},
+                    "matchType": {"type": "string", "enum": ["EXACT", "BROAD"]},
+                    "bidAmount": {"$ref": "#/components/schemas/Money", "description": "IGNORED by Apple on create — use bulk PUT after"}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {"200": {"description": "Created keywords (+ errors)"}}
+      }
+    },
+    "/campaigns/{campaignId}/adgroups/{adGroupId}/targetingkeywords/bulk": {
+      "put": {
+        "summary": "Update keywords in BULK — THE ONLY WORKING UPDATE ENDPOINT",
+        "description": "⚠️ CRITICAL: Apple does NOT support PUT /targetingkeywords/{id} (returns 404). Always use this bulk endpoint even for single-keyword updates. Body must be an array of keyword objects with `id` + fields to change (bidAmount, status). Discovered Apr 24, 2026 while debugging the bid-override-on-create issue.",
+        "operationId": "bulkUpdateKeywords",
+        "tags": ["Keyword"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}},
+          {"name": "adGroupId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {
+                    "id": {"type": "integer", "format": "int64"},
+                    "bidAmount": {"$ref": "#/components/schemas/Money"},
+                    "status": {"type": "string", "enum": ["ACTIVE", "PAUSED"]}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {"200": {"description": "Updated keywords array"}}
+      }
+    },
+    "/campaigns/{campaignId}/negativekeywords": {
+      "get": {
+        "summary": "List campaign-level negative keywords",
+        "operationId": "listNegativeKeywords",
+        "tags": ["NegativeKeyword"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}},
+          {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 1000}}
+        ],
+        "responses": {"200": {"description": "Negative keywords"}}
+      },
+      "post": {
+        "summary": "Add negative keywords (campaign-level)",
+        "description": "⚠️ GATE: Never add more than 5 negatives at once. Feb 13 2026 incident: 32 negatives killed 77% volume undetected for 6 weeks. See rai-aso/apple-ads/CLAUDE.md Negative Keyword Protocol.",
+        "operationId": "addNegativeKeywords",
+        "tags": ["NegativeKeyword"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["text", "matchType"],
+                  "properties": {
+                    "text": {"type": "string"},
+                    "matchType": {"type": "string", "enum": ["EXACT", "BROAD"]}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {"200": {"description": "Created negatives"}}
+      }
+    },
+    "/reports/campaigns": {
+      "post": {
+        "summary": "Campaign-level performance report",
+        "description": "Works for all campaign types including Search Match / Max_Conv (no keyword-level data). Use `selector.conditions` with `{field: 'campaignId', operator: 'IN', values: ['ID']}` to filter.",
+        "operationId": "campaignReport",
+        "tags": ["Report"],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReportRequest"}}}},
+        "responses": {"200": {"description": "Report", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReportResponse"}}}}}
+      }
+    },
+    "/reports/campaigns/{campaignId}/adgroups": {
+      "post": {
+        "summary": "Ad group-level report for one campaign",
+        "operationId": "adGroupReport",
+        "tags": ["Report"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}
+        ],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReportRequest"}}}},
+        "responses": {"200": {"description": "Report"}}
+      }
+    },
+    "/reports/campaigns/{campaignId}/keywords": {
+      "post": {
+        "summary": "Keyword-level report for one campaign",
+        "description": "Returns EXACT/BROAD keywords with per-day metrics. Max_Conv campaigns return 0 rows here — use /reports/campaigns for those.",
+        "operationId": "keywordReport",
+        "tags": ["Report"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}
+        ],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReportRequest"}}}},
+        "responses": {"200": {"description": "Keyword report"}}
+      }
+    },
+    "/reports/campaigns/{campaignId}/searchterms": {
+      "post": {
+        "summary": "Search terms report — what users actually searched",
+        "description": "Returns search term text + matched keyword + match type. Apple privacy-aggregates low-volume unique terms as NULL. Max_Conv reveals brand-variant searches via AUTO source.",
+        "operationId": "searchTermsReport",
+        "tags": ["Report"],
+        "parameters": [
+          {"name": "campaignId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}
+        ],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ReportRequest"}}}},
+        "responses": {"200": {"description": "Search terms report"}}
+      }
+    },
+    "/acls": {
+      "get": {
+        "summary": "List ACLs (orgs you have access to) — health check endpoint",
+        "description": "Use this as a connection test. Returns the orgs your credentials can access. Useful for verifying JWT auth without hitting rate-limited endpoints.",
+        "operationId": "listAcls",
+        "tags": ["Auth"],
+        "responses": {"200": {"description": "ACLs list"}}
+      }
+    }
+  }
+}
