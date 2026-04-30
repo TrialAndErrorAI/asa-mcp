@@ -52,7 +52,7 @@ export class ASAClient {
    * @example
    *   api.request({ method: 'GET', path: '/campaigns', params: { limit: 1000 } })
    *   api.request({ method: 'PUT', path: '/campaigns/123/adgroups/456/targetingkeywords/bulk', body: [...] })
-   *   api.request({ method: 'POST', path: '/reports/campaigns', body: {...}, orgId: '8569880' })
+   *   api.request({ method: 'POST', path: '/reports/campaigns', body: {...}, orgId: 'YOUR_NON_US_ORG_ID' })
    */
   async request(opts: {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE';

@@ -53,7 +53,7 @@ async function main() {
   const reportCode = `
     const rep = await api.request({
       method: 'POST',
-      path: '/reports/campaigns/2143274136/keywords',
+      path: '/reports/campaigns/YOUR_CAMPAIGN_ID/keywords',
       body: {
         startTime: '2026-04-17', endTime: '2026-04-23',
         granularity: 'DAILY',
@@ -78,7 +78,7 @@ async function main() {
   if (reportResult.error) throw new Error(`Report error: ${reportResult.error}`);
   console.log(JSON.stringify(reportResult.result, null, 2));
 
-  console.log('\n✅ All 3 tests passed — asa-mcp v0.0.1 is functional.');
+  console.log('\n✅ All 3 tests passed — asa-mcp v0.1.0 is functional.');
 }
 
 main().catch((err) => {

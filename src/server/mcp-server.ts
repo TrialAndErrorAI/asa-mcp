@@ -35,7 +35,7 @@ export class ASAMCPServer {
 
   constructor(config: ASAServerConfig) {
     this.server = new Server(
-      { name: 'asa-mcp', version: '0.0.1' },
+      { name: 'asa-mcp', version: '0.1.0' },
       { capabilities: { tools: {} } }
     );
 
@@ -122,7 +122,7 @@ Usage:
     path: '/campaigns',                    // from search results
     params: { limit: 1000 },              // query string (optional)
     body: { ... },                         // POST/PUT body (optional)
-    orgId: '8569880',                      // override org for Non-US (optional, default is main US org)
+    orgId: 'YOUR_NON_US_ORG_ID',                      // override org for Non-US (optional, default is main US org)
   });
 
 Reports endpoints return:
@@ -135,7 +135,7 @@ Errors: Apple returns { data: null, error: { errors: [{ messageCode, message, fi
 Example — pull Brand campaign 14d keyword report:
   const rep = await api.request({
     method: 'POST',
-    path: '/reports/campaigns/2143274136/keywords',
+    path: '/reports/campaigns/YOUR_CAMPAIGN_ID/keywords',
     body: {
       startTime: '2026-04-10', endTime: '2026-04-23',
       granularity: 'DAILY',
@@ -187,6 +187,6 @@ Example — pull Brand campaign 14d keyword report:
   async start() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    process.stderr.write('asa-mcp v0.0.1 started\n');
+    process.stderr.write('asa-mcp v0.1.0 started\n');
   }
 }
